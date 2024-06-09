@@ -30,18 +30,8 @@ variable "sensitive" {
 }
 
 
-variable "makebucketpublic" {
-  description = "make bucket public or not "
-  type = bool 
-  default = false
-}
-
 variable "auditing" {
   description = "Enable Auditing for bucket, this would turn on object lock"
   type = bool
   default = true
-}
-
-variable "enableloging" {
-  description = "enable server acess logging for bucket"
 }
