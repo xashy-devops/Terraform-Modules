@@ -51,7 +51,7 @@ resource "aws_s3_bucket_object_lock_configuration" "example" {
 # Enable server access logging when any of the variables are true.
 
 resource "aws_s3_bucket_logging" "serveraccesslogging" {
-  count   = (var.enableloging  ||var.auditing) ? var.bucketcount : 0
+  count   = (var.sensitive  || var.auditing) ? var.bucketcount : 0
   bucket = aws_s3_bucket.mybucket[count.index].id
   target_bucket = "bucketservelogging"
   target_prefix =   "${var.appname}-${var.env}-${count.index}"
