@@ -1,89 +1,64 @@
-#########################################################################################
+#Create the load balancer security group. 
+resource "aws_security_group" "lb_sg" {
 
-#VPC
-resource "aws_vpc" "app_vpc" {
-    cidr_block = var.vpc_cidr
-}
-
-#Subnets
-resource "aws_subnet" "app_subnets" {
-
-  count = length(var.subnet_cidr)
-
-  vpc_id     = aws_vpc.app_vpc.id
-  availability_zone = var.subnet_AZs[count.index]
-  cidr_block = var.subnet_cidr[count.index]
-}
-
-#IGW
-resource "aws_internet_gateway" "app_igw" {
-  vpc_id = aws_vpc.app_vpc.id
-}
-
-
-
-#alb security group
-resource "aws_security_group" "alb_sg" {
-  name        = "alb_sg"
-  description = "whitelists https inbound and outbound traffics"
-  vpc_id      = aws_vpc.app_vpc.id
+    name_prefix = "${var.lb_name}-sg"
+    vpc_id      = var.vpc_id
 
   ingress {
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
-    # security_groups = [aws_security_group.alb_sg.id]
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port = 0
-    to_port = 0
-    protocol = -1
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
+
 }
 
+}
 
-
-#ALB
+# create the load balancer 
 resource "aws_lb" "alb" {
-  name               = "alb"
+  name               = var.lb_name
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
+  security_groups    = [aws_security_group.lb_sg.id]
+  subnets            = var.subnets
 
-  subnets = [for subnet in aws_subnet.app_subnets: subnet.id]
-
-  enable_deletion_protection = false
+  tags = var.lbtags
 }
 
-#Target group
-resource "aws_lb_target_group" "app_alb_tg" {
-  name       = "tg"
-  port       = 80
-  protocol   = "HTTP"
-  depends_on = [aws_vpc.app_vpc]
-  vpc_id     = aws_vpc.app_vpc.id
+# create a target group for the service on ecs 
+resource "aws_lb_target_group" "service-tg" {
+  name     = var.target_group_name
+  port     = var.target_group_port
+  protocol = "HTTP"
+  target_type = "ip"
+  vpc_id   = var.vpc_id
 
   health_check {
-    interval            = 70
-    path                = "/"
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 60
-    protocol            = "HTTP"
+    path                = var.health_check_path
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 1
+    unhealthy_threshold = 5
+    matcher             = "200"
   }
 }
 
-#ALB port 80 listener
-resource "aws_lb_listener" "alb_http_listener" {
+# Create a listener that listens to traffic. 
+resource "aws_lb_listener" "service-listener" {
   load_balancer_arn = aws_lb.alb.arn
-  port              = 80
+  port              = var.listenerport
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.app_alb_tg.arn
+    target_group_arn = aws_lb_target_group.service-tg.arn
   }
 }
 
