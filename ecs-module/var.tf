@@ -93,3 +93,12 @@ variable "ecsexecutionrole" {
   description = "task execution role"
   type = string
 }
+
+variable "min_capacity" {
+  description = "The min capacity of the service"
+  type = number
+}
+
+variable "max_capacity" {
+  description = "The max capacity of the service"
+}

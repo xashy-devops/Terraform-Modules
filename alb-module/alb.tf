@@ -44,7 +44,7 @@ resource "aws_lb_target_group" "service-tg" {
     path                = var.health_check_path
     interval            = 30
     timeout             = 5
-    healthy_threshold   = 1
+    healthy_threshold   = 2
     unhealthy_threshold = 5
     matcher             = "200"
   }
